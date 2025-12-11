@@ -40,15 +40,15 @@ jobs:
       # 3. Build Docker
       ############################################
       - name: Build Docker image
-        run: docker build -t devsecops-api .
+        run: docker build -t devsecops-api ./docker
 
       ############################################
       # 4. Scan Docker avec Trivy
       ############################################
       - name: Trivy Scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.11.0   # tag stable
         with:
           scan-type: image
           image-ref: devsecops-api
           severity: CRITICAL,HIGH
-          exit-code: 1
+          ignore-unfixed: false
