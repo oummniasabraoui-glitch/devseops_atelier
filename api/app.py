@@ -16,9 +16,9 @@ def login():
     conn = sqlite3.connect("users.db")
     cursor = conn.cursor()
 
-    # Vulnérabilité SQL Injection volontaire
-    query = f"SELECT * FROM users WHERE username='{username}' AND password='{password}'"
-    cursor.execute(query)
+    # Correction de la vulnérabilité SQL Injection
+    query = "SELECT * FROM users WHERE username=? AND password=?"
+    cursor.execute(query, (username, password))
 
     result = cursor.fetchone()
     if result:
