@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   devsecops:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  
 
     steps:
       # 0. Checkout repository
