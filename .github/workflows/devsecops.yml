@@ -61,5 +61,5 @@ jobs:
       - name: Install Safety
         run: pip install safety
 
-      - name: Dependency vulnerability scan
+      - name: Dependency vulnerability scan 
         run: safety check -r requirements.txt
