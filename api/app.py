@@ -29,7 +29,24 @@ def login():
     return {"status": "error", "message": "Invalid credentials"}
 
 
+############################################
+# 2. PING – Command Injection empêchée
+############################################
+@app.route("/ping", methods=["POST"])
+def ping():
+    host = request.json.get("host", "")
 
+    # Validation stricte
+    if not re.match(r"^[a-zA-Z0-9\.\-]+$", host):
+        return {"error": "Invalid host"}, 400
+
+    cmd = ["ping", "-c", "1", host]
+
+    try:
+        output = subprocess.check_output(cmd)  # pas de shell=True
+        return {"output": output.decode()}
+    except Exception:
+        return {"error": "Ping failed"}, 400
 
 
 ############################################
