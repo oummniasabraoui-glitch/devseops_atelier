@@ -1,36 +1,84 @@
-import hashlib
-import subprocess
 from flask import Flask, request
-
-from utils import load_user
+import sqlite3
+import subprocess
+import hashlib
+import os
+import re
 
 app = Flask(__name__)
-
-def hash_password(password):
-    return hashlib.md5(password.encode()).hexdigest()
-
-@app.route("/ping")
-def ping():
-    host = request.args.get("host", "localhost")
-    result = subprocess.check_output(f"ping -c 1 {host}", shell=True)
-    return result
-
-ADMIN_PASSWORD = "123456"
-
-@app.route("/hello")
-def hello():
-    name = request.args.get("name", "user")
-    return f"<h1>Hello {name}</h1>"
-
-@app.route("/login")
+SECRET_KEY = os.getenv("SECRET_KEY", "not-for-production")
+@app.route("/login", methods=["POST"])
 def login():
-    username = request.args.get("username")
-    password = request.args.get("password")
-    stored_password = load_user(username)
+    username = request.json.get("username")
+    password = request.json.get("password")
 
-    if stored_password == password:
-        return "Logged in"
-    return "Invalid credentials"
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+
+    query = "SELECT * FROM users WHERE username=? AND password=?"
+    cursor.execute(query, (username, password))
+
+    result = cursor.fetchone()
+    if result:
+        return {"status": "success", "user": username}
+    return {"status": "error", "message": "Invalid credentials"}
+@app.route("/ping", methods=["POST"])
+def ping():
+    host = request.json.get("host", "")
+
+    # Validation stricte
+    if not re.match(r"^[a-zA-Z0-9\.\-]+$", host):
+        return {"error": "Invalid host"}, 400
+
+    cmd = ["ping", "-c", "1", host]
+
+    try:
+        output = subprocess.check_output(cmd)  # pas de shell=True
+        return {"output": output.decode()}
+    except Exception:
+        return {"error": "Ping failed"}, 400
+@app.route("/compute", methods=["POST"])
+def compute():
+    expression = request.json.get("expression", "1+1")
+
+    # Expression autorisée : chiffres + opérateurs simples
+    if not re.match(r"^[0-9+\-*/(). ]+$", expression):
+        return {"error": "Invalid expression"}, 400
+
+    try:
+        result = eval(expression, {"__builtins__": None}, {})
+        return {"result": result}
+    except Exception:
+        return {"error": "Computation error"}, 400
+@app.route("/hash", methods=["POST"])
+def hash_password():
+    pwd = request.json.get("password", "admin")
+    hashed = hashlib.sha256(pwd.encode()).hexdigest()
+    return {"sha256": hashed}
+@app.route("/readfile", methods=["POST"])
+def readfile():
+    filename = request.json.get("filename", "test.txt")
+
+    # Accès limité à un répertoire précis
+    base_dir = os.path.abspath("files")
+    file_path = os.path.abspath(os.path.join(base_dir, filename))
+
+    if not file_path.startswith(base_dir):
+        return {"error": "Unauthorized file access"}, 403
+
+    try:
+        with open(file_path, "r") as f:
+            content = f.read()
+        return {"content": content}
+    except FileNotFoundError:
+        return {"error": "File not found"}, 404
+@app.route("/debug", methods=["GET"])
+def debug():
+    return {"debug": "disabled"}
+@app.route("/hello", methods=["GET"])
+def hello():
+    return {"message": "Welcome to the secure DevSecOps API"}
+
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000)
