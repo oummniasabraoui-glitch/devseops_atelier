@@ -77,7 +77,7 @@ def debug():
     return {"debug": "disabled"}
 @app.route("/hello", methods=["GET"])
 def hello():
-    return {"message": "Welcome to the secure DevSecOps API"}
+    return {"message": "Welcome to the secure DevSecOps ApI"}
 
 
 if __name__ == "__main__":
